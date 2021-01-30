@@ -154,6 +154,7 @@ void esp_bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
     return;
 }
 
+extern void test(void);
 void app_main(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -215,5 +216,7 @@ void app_main(void)
     esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_VARIABLE;
     esp_bt_pin_code_t pin_code;
     esp_bt_gap_set_pin(pin_type, 0, pin_code);
+	
+	test();
 }
 
