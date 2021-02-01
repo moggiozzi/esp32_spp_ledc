@@ -85,7 +85,7 @@ DRAM_ATTR static const uint16_t usTimerGroupIndex = 0;
 
 IRAM_ATTR void vTimerGroupIsr(void *param)
 {
-	timer_spinlock_take(usTimerGroupIndex);
+	//timer_spinlock_take(usTimerGroupIndex);
     timer_intr_t timer_intr = timer_group_get_intr_status_in_isr(usTimerGroupIndex);
     if ((timer_intr & TIMER_INTR_T0) != 0)
     {
@@ -93,7 +93,7 @@ IRAM_ATTR void vTimerGroupIsr(void *param)
 		timer_group_clr_intr_status_in_isr(usTimerGroupIndex, usTimerIndex);
 		uart_addTimeoutEventFromIsr();
     }
-    timer_spinlock_give(usTimerGroupIndex);
+    //timer_spinlock_give(usTimerGroupIndex);
 }
 
 int8_t mbrtuTmr_init(void)
@@ -148,19 +148,27 @@ void mbrtuTmr_startIntercharTimer(void)
 
 
 /********************************* REBOOT CODE ******************************/
-static TimerHandle_t s_delayed_restart_timer = NULL;
-static void restart(TimerHandle_t timer) {
+TimerHandle_t s_delayed_restart_timer = NULL;
+void restart(TimerHandle_t timer) {
 	dbg_printf(__func__, "reboot...");
+	esp_restart();
+}
+void restartTask(void* p) {
+	int ms = (int)p;
+	vTaskDelay(pdMS_TO_TICKS(ms));
 	esp_restart();
 }
 /***************************************************************************/
 
 
 void test(void) {
+#if 0
 	s_delayed_restart_timer = xTimerCreate("RestartTimer", 1, pdFALSE, NULL, restart);
 	xTimerChangePeriod(s_delayed_restart_timer, pdMS_TO_TICKS(15*1000), portMAX_DELAY);
 	xTimerStart(s_delayed_restart_timer, portMAX_DELAY);
-
+#else
+	xTaskCreate(restartTask, "restart_task", 2*1024, (void*)(15*1000), 10, &xMbTaskHandle);
+#endif
     xMbUartQueue = xQueueCreate(MB_QUEUE_LENGTH, sizeof(uart_event_t));
     xTaskCreate(vUartTask, "uart_task", 4*1024, NULL, 10, &xMbTaskHandle);
     mbrtuTmr_init();
