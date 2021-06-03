@@ -14,6 +14,7 @@
 #include "esp_log.h"
 #include "esp_attr.h" //IRAM_ATTR
 #include "esp_system.h" // esp_restart()
+#include "soc/rtc.h"
 
 #define dbg_printf(tag,fmt,...) ESP_LOGI(tag, fmt, ##__VA_ARGS__)
 
@@ -149,14 +150,30 @@ void mbrtuTmr_startIntercharTimer(void)
 
 /********************************* REBOOT CODE ******************************/
 TimerHandle_t s_delayed_restart_timer = NULL;
+static __attribute__((noreturn)) void esp_digital_reset(void)
+{
+    rtc_clk_cpu_freq_set_xtal();
+#if CONFIG_IDF_TARGET_ESP32
+	dbg_printf(__func__, "uninstall cpu\r\n");
+    esp_cpu_unstall(PRO_CPU_NUM);
+#endif
+    // reset the digital part
+    SET_PERI_REG_MASK(RTC_CNTL_OPTIONS0_REG, RTC_CNTL_SW_SYS_RST);
+    while (true) {
+        ;
+    }
+}
 void restart(TimerHandle_t timer) {
-	dbg_printf(__func__, "reboot...");
-	esp_restart();
+	dbg_printf(__func__, "reboot3...\r\n");
+	vTaskDelay(pdMS_TO_TICKS(500));
+	//esp_restart();
+	esp_digital_reset();
 }
 void restartTask(void* p) {
 	int ms = (int)p;
 	vTaskDelay(pdMS_TO_TICKS(ms));
-	esp_restart();
+	//esp_restart();
+	esp_digital_reset();
 }
 /***************************************************************************/
 
